@@ -1,0 +1,49 @@
+import ijson
+from itertools import islice
+
+def read_partial_json(file_path):
+    """
+    Reads a large JSON file partially, extracting only top-level keys
+    and the first 10 key-value pairs from each top-level value.
+    """
+    partial_data = {}
+    with open(file_path, 'rb') as f:
+        # Use ijson.items to iterate over each top-level key-value pair
+        for prefix, event, value in ijson.parse(f):
+            # Check for the start of a new top-level object
+            if event == 'start_map' and prefix:
+                current_key = prefix.split('.')[0]
+                partial_data[current_key] = {}
+            
+            # Check for a new key-value pair within a nested object
+            if event == 'string' and prefix.count('.') == 2 and prefix.endswith('.item'):
+                sub_key = prefix.split('.')[1]
+                if len(partial_data[current_key]) < 10:
+                    partial_data[current_key][sub_key] = value
+
+    return partial_data
+
+# Example usage:
+# Assuming 'your_large_file.json' exists in the same directory.
+# This will return a dictionary containing each top-level key and
+# a sub-dictionary with the first 10 key-value pairs from the original file.
+partial_result = read_partial_json('your_large_file.json')
+print(partial_result)
+
+
+import ijson
+from itertools import islice
+
+def read_partial_list_json(file_path):
+    """
+    Reads a JSON array, taking only the first 10 key-value pairs from each object.
+    """
+    all_partial_items = []
+    with open(file_path, 'rb') as f:
+        # The 'item' prefix signifies each object in the list
+        for item in ijson.items(f, 'item'):
+            # Use islice on the dictionary's items to get the first 10
+            partial_item = dict(islice(item.items(), 10))
+            all_partial_items.append(partial_item)
+
+    return all_partial_items
